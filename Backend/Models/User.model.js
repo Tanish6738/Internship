@@ -1,27 +1,42 @@
-import { Schema } from "mongoose";
+import mongoose from "mongoose";
+const { Schema, model } = mongoose;
 
 const UserSchema = new Schema({
-    username : {
+    username: {
         type: String,
         required: true,
         trim: true,
         lowercase: true,
         unique: true,
     },
-    password : {
+    password: {
         type: String,
         required: true,
         trim: true,
     },
-    email : {
+    email: {
         type: String,
         required: true,
         trim: true,
         lowercase: true,
         unique: true,
     },
-    Orderhistory : {
-        type: Array,
+    isAdmin: {
+        type: Boolean,
+        default: false
+    },
+    orderHistory: {
+        type: [{
+            type: Schema.Types.ObjectId,
+            ref: "Transaction"
+        }],
         default: [],
     }
+},
+{
+    timestamps: true,
 });
+
+const UserModel = model("User", UserSchema);
+
+export default UserModel;

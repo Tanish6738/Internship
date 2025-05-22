@@ -1,28 +1,53 @@
 import { NavLink } from "react-router-dom"
 import { useState, useEffect } from "react"
+import UserService from "../services/User.service"
 
-const routes = [
+const baseRoutes = [
   { path: "/", name: "Home" },
   { path: "/about", name: "About" },
   // { path: "/products", name: "Products" },
   { path: "/cart", name: "Cart" },
-  // { path: "/contact", name: "Contact" },
-  // { path: "/login", name: "Login" },
+]
+
+const authRoutes = [
+  { path: "/my-transactions", name: "My Transactions" },
+  { path: "/profile", name: "Profile" },
+]
+
+const nonAuthRoutes = [
+  { path: "/auth", name: "Login" },
 ]
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  
+  const getRoutes = () => {
+    return [
+      ...baseRoutes,
+      ...(isAuthenticated ? authRoutes : nonAuthRoutes)
+    ]
+  }
 
-  // Add scroll effect for navbar
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10)
     }
     
+    const checkAuth = () => {
+      setIsAuthenticated(UserService.isLoggedIn())
+    }
+    
     window.addEventListener('scroll', handleScroll)
+    
+    checkAuth()
+    
+    const authInterval = setInterval(checkAuth, 5000)
+    
     return () => {
       window.removeEventListener('scroll', handleScroll)
+      clearInterval(authInterval)
     }
   }, [])
 
@@ -38,7 +63,6 @@ const Navbar = () => {
         </span>
       </div>
       
-      {/* Tablet/Mobile Menu Button */}
       <button
         className="lg:hidden flex flex-col justify-center items-center w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-300 hover:bg-orange-50"
         onClick={() => setMenuOpen(!menuOpen)}
@@ -48,10 +72,8 @@ const Navbar = () => {
         <span className={`block h-0.5 w-6 bg-orange-600 mb-1.5 transition-all duration-300 ${menuOpen ? 'opacity-0' : ''}`}></span>
         <span className={`block h-0.5 w-6 bg-orange-600 transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
       </button>
-      
-      {/* Desktop Menu (large screens only) */}
       <ul className="hidden lg:flex gap-6 lg:gap-10 items-center">
-        {routes.map(({ path, name }) => (
+        {getRoutes().map(({ path, name }) => (
           <li key={path}>
             <NavLink
               to={path}
@@ -76,16 +98,14 @@ const Navbar = () => {
         ))}
       </ul>
       
-      {/* Tablet/Mobile Menu Dropdown */}
       <div className={`lg:hidden absolute top-full left-0 w-full bg-white/95 backdrop-blur-md transition-all duration-300 shadow-lg ${
         menuOpen 
           ? 'max-h-screen py-4 opacity-100' 
           : 'max-h-0 py-0 opacity-0 pointer-events-none'
-      } overflow-hidden z-10`}>
-        {/* Tablet-specific menu (md screens) */}
+      } overflow-hidden z-10`}>        {/* Tablet-specific menu (md screens) */}
         <div className="hidden md:flex lg:hidden justify-center pb-2">
           <ul className="flex flex-wrap justify-center gap-2 px-4">
-            {routes.map(({ path, name }) => (
+            {getRoutes().map(({ path, name }) => (
               <li key={path} className="flex-shrink-0">
                 <NavLink
                   to={path}
@@ -105,9 +125,8 @@ const Navbar = () => {
           </ul>
         </div>
         
-        {/* Mobile Menu (only visible on sm screens) */}
         <ul className="flex md:hidden flex-col gap-2 px-6">
-          {routes.map(({ path, name }) => (
+          {getRoutes().map(({ path, name }) => (
             <li key={path}>
               <NavLink
                 to={path}
