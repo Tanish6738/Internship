@@ -76,7 +76,7 @@ const ProductModal = ({ product, isOpen, onClose }) => {
           {/* Product Image */}
           <div className="md:w-1/2 p-3 sm:p-6 flex items-center justify-center bg-gradient-to-br from-orange-50 to-white">
             <img
-              src={product.images[0]}
+              src={product?.image }
               alt={product.name}
               className="object-contain h-48 sm:max-h-60 md:max-h-80 w-auto shadow-lg rounded-md"
             />
