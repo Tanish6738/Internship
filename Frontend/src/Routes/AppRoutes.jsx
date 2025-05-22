@@ -5,6 +5,7 @@ import Home from "../Pages/Home"
 import About from "../Pages/About"
 import Cart from "../Pages/Cart"
 import FloatingCart from "../components/FloatingCart"
+import Footer from "../components/Footer"
 
 const AppRoutes = () => {
   return (
@@ -16,6 +17,7 @@ const AppRoutes = () => {
         <Route path="/about" element={<Layout><About /></Layout>} />
         <Route path="/cart" element={<Layout><Cart /></Layout>} />
       </Routes>
+      <Footer/>
     </>
   )
 }

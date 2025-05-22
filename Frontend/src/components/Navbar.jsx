@@ -4,10 +4,10 @@ import { useState, useEffect } from "react"
 const routes = [
   { path: "/", name: "Home" },
   { path: "/about", name: "About" },
-  { path: "/products", name: "Products" },
+  // { path: "/products", name: "Products" },
   { path: "/cart", name: "Cart" },
-  { path: "/contact", name: "Contact" },
-  { path: "/login", name: "Login" },
+  // { path: "/contact", name: "Contact" },
+  // { path: "/login", name: "Login" },
 ]
 
 const Navbar = () => {
