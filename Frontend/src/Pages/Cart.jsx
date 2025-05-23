@@ -1,11 +1,27 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ProductService from "../services/Product.service";
+import TransactionService from "../services/Transaction.service";
+import UserService from "../services/User.service";
 import { toast } from "react-hot-toast"; // Assuming you have a toast library
 
 const Cart = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form state
+  const [shippingAddress, setShippingAddress] = useState({
+    street: "",
+    city: "",
+    state: "",
+    country: "India",
+    zipCode: "",
+    phone: ""
+  });
+  const [paymentMethod, setPaymentMethod] = useState("COD");
 
   useEffect(() => {
     loadCartItems();
@@ -76,12 +92,259 @@ const Cart = () => {
     }
   };
 
+  // Handle input change for shipping address form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setShippingAddress(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  // Handle checkout submission
+  const handleCheckout = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    // Check if cart is empty
+    if (cartItems.length === 0) {
+      setIsSubmitting(false);
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    // Validate shipping address
+    for (const field of ['street', 'city', 'state', 'zipCode', 'phone']) {
+      if (!shippingAddress[field]) {
+        setIsSubmitting(false);
+        toast.error(`Please fill in your ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+        return;
+      }
+    }
+
+    // Check if user is logged in
+    if (!UserService.isLoggedIn()) {
+      setIsSubmitting(false);
+      toast.error("Please login to complete your purchase");
+      // Store current path to redirect back after login
+      sessionStorage.setItem('redirectAfterLogin', '/cart');
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      // Log current cart items for debugging
+      console.log('Checkout cart items:', cartItems);
+      
+      // Create transaction
+      await TransactionService.createTransaction(shippingAddress, paymentMethod);
+      
+      // Show success message
+      toast.success("Order placed successfully!");
+      
+      // Reset form
+      setShippingAddress({
+        street: "",
+        city: "",
+        state: "",
+        country: "India",
+        zipCode: "",
+        phone: ""
+      });
+      
+      // Navigate to transactions page
+      navigate("/my-transactions");
+    } catch (error) {
+      console.error("Error during checkout:", error);
+      
+      // If unauthorized error, redirect to login
+      if (error.response && error.response.status === 401) {
+        toast.error("Your session has expired. Please login again.");
+        UserService.logout(); // Clear any invalid tokens
+        sessionStorage.setItem('redirectAfterLogin', '/cart');
+        navigate("/auth");
+      } else {
+        toast.error(error.response?.data?.message || "Failed to place order. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Helper to format as Rupees
   const formatRupees = (amount) => `₹${amount.toFixed(2)}`;
 
   return (
     <div className="container min-h-0 w-full px-4 sm:px-6 md:px-12 lg:px-20 mx-auto bg-gradient-to-br from-white via-orange-50 to-white pt-[4.5em] sm:pt-[5em] pb-10 sm:pb-20">
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-8">Your Shopping Cart</h1>
+
+      {/* Checkout Modal */}
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Checkout</h2>
+                <button 
+                  onClick={() => setShowCheckout(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <div className="flex justify-between py-2 border-b text-sm">
+                  <span>Subtotal:</span>
+                  <span>{formatRupees(total)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b text-sm">
+                  <span>Tax (10%):</span>
+                  <span>{formatRupees(total * 0.1)}</span>
+                </div>
+                <div className="flex justify-between py-2 font-bold">
+                  <span>Total:</span>
+                  <span>{formatRupees(total + total * 0.1)}</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleCheckout}>
+                <h3 className="font-semibold mb-2">Shipping Address</h3>
+                <div className="grid grid-cols-1 gap-3 mb-4">
+                  <div>
+                    <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1">Street Address*</label>
+                    <input
+                      type="text"
+                      id="street"
+                      name="street"
+                      value={shippingAddress.street}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">City*</label>
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={shippingAddress.city}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">State*</label>
+                      <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value={shippingAddress.state}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">Country*</label>
+                      <input
+                        type="text"
+                        id="country"
+                        name="country"
+                        value={shippingAddress.country}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">Postal Code*</label>
+                      <input
+                        type="text"
+                        id="zipCode"
+                        name="zipCode"
+                        value={shippingAddress.zipCode}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number*</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={shippingAddress.phone}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </div>
+                
+                <h3 className="font-semibold mb-2">Payment Method</h3>
+                <div className="mb-4">
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="radio"
+                      id="cod"
+                      name="paymentMethod"
+                      value="COD"
+                      checked={paymentMethod === "COD"}
+                      onChange={() => setPaymentMethod("COD")}
+                      className="mr-2"
+                    />
+                    <label htmlFor="cod">Cash On Delivery</label>
+                  </div>
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="radio"
+                      id="credit-card"
+                      name="paymentMethod"
+                      value="Credit Card"
+                      checked={paymentMethod === "Credit Card"}
+                      onChange={() => setPaymentMethod("Credit Card")}
+                      className="mr-2"
+                    />
+                    <label htmlFor="credit-card">Credit Card</label>
+                  </div>
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="radio"
+                      id="upi"
+                      name="paymentMethod"
+                      value="UPI"
+                      checked={paymentMethod === "UPI"}
+                      onChange={() => setPaymentMethod("UPI")}
+                      className="mr-2"
+                    />
+                    <label htmlFor="upi">UPI</label>
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full py-3 rounded-md font-medium text-white ${isSubmitting ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                >
+                  {isSubmitting ? 'Processing...' : 'Place Order'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cartItems.length === 0 ? (
         <div className="text-center py-8 sm:py-12">
@@ -112,7 +375,7 @@ const Cart = () => {
                   </thead>
                   <tbody>
                     {cartItems.map((item) => (
-                      <tr key={item.id} className="border-b">
+                      <tr key={item._id} className="border-b">
                         <td className="py-4 px-4 sm:px-6">
                           <div className="flex items-center">
                             <img
@@ -171,7 +434,6 @@ const Cart = () => {
                 </table>
               </div>
               
-              {/* Mobile view - Card format */}
               <div className="sm:hidden">
                 {cartItems.map((item) => (
                   <div key={item.id} className="border-b p-4">
@@ -256,14 +518,20 @@ const Cart = () => {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-sm sm:text-base">Tax</span>
                 <span className="text-sm sm:text-base">{formatRupees(total * 0.1)}</span>
-              </div>
-
-              <div className="flex justify-between py-3 sm:py-4 font-bold">
+              </div>              <div className="flex justify-between py-3 sm:py-4 font-bold">
                 <span className="text-base sm:text-lg">Total</span>
                 <span className="text-base sm:text-lg">{formatRupees(total + total * 0.1)}</span>
               </div>
 
-              <button className="w-full bg-blue-600 text-white py-2 sm:py-3 rounded-md font-medium hover:bg-blue-700 transition-all mt-3 sm:mt-4 text-sm sm:text-base">
+              <button 
+                onClick={() => setShowCheckout(true)}
+                disabled={cartItems.length === 0}
+                className={`w-full py-2 sm:py-3 rounded-md font-medium transition-all mt-3 sm:mt-4 text-sm sm:text-base ${
+                  cartItems.length === 0 
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
                 Proceed to Checkout
               </button>
 

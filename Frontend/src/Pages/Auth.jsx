@@ -31,8 +31,7 @@ const Auth = () => {
   const handleRegisterChange = (e) => {
     const { name, value } = e.target;
     setRegisterData((prev) => ({ ...prev, [name]: value }));
-  };
-  // Handle login submission
+  };  // Handle login submission
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -41,7 +40,15 @@ const Auth = () => {
     try {
       const response = await UserService.login(loginData.email, loginData.password);
       setIsLoading(false);
-      navigate("/"); // Redirect to home page after successful login
+      
+      // Check if there's a redirect path stored
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin'); // Clear it after use
+        navigate(redirectPath);
+      } else {
+        navigate("/"); // Default: redirect to home page after successful login
+      }
     } catch (error) {
       setIsLoading(false);
       if (error.message) {
@@ -62,16 +69,22 @@ const Auth = () => {
       setError("Passwords do not match");
       setIsLoading(false);
       return;
-    }
-
-    try {
+    }    try {
       const response = await UserService.register(
         registerData.username,
         registerData.email,
         registerData.password
       );
       setIsLoading(false);
-      navigate("/"); 
+      
+      // Check if there's a redirect path stored
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin'); // Clear it after use
+        navigate(redirectPath);
+      } else {
+        navigate("/"); // Default: redirect to home page after successful login
+      }
     } catch (error) {
       setIsLoading(false);
       if (error.message) {

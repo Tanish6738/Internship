@@ -99,11 +99,10 @@ const Home = () => {
           <p>{error}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 px-4 max-w-7xl mx-auto">
-          {products.map(product => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 px-4 max-w-7xl mx-auto">          {products.map(product => (
             <Cards 
-              key={product.id || product._id} 
-              id={product.id || product._id}
+              key={product._id || product.id} 
+              id={product._id || product.id}
               name={product.name}
               price={product.price}
               image={product.image || (product.images && product.images[0])}

@@ -34,10 +34,15 @@ const ProductModal = ({ product, isOpen, onClose }) => {
   const increaseQuantity = () => {
     setQuantity(quantity + 1);
   };
-
   const handleAddToCart = () => {
     try {
-      ProductService.addToCart(product, quantity);
+      // Ensure the product has a consistent ID property before adding to cart
+      const productWithCorrectId = {
+        ...product,
+        id: product._id || product.id // Prioritize _id (from MongoDB)
+      };
+      
+      ProductService.addToCart(productWithCorrectId, quantity);
       toast.success(`Added ${quantity} ${product.name} to cart!`);
       onClose();
     } catch (error) {

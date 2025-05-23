@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', transactionRoutes);
+app.use('/api/transactions', transactionRoutes); // Add this alias for the transactions
 
 app.get('/', (req, res) => {
   res.send('Hello World!');

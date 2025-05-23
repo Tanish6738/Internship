@@ -70,23 +70,34 @@ class ProductService {
     }
   }
 
-
   addToCart(product, quantity = 1) {
     try {
+      console.log('Adding product to cart:', product);
+      
       const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
+      
+      if (!product || !product.id) {
+        console.error('Invalid product data:', product);
+        throw new Error('Invalid product data');
+      }
       
       const existingItemIndex = cartItems.findIndex(item => item.id === product.id);
       
       if (existingItemIndex !== -1) {
         cartItems[existingItemIndex].quantity += quantity;
+        console.log('Updated existing cart item:', cartItems[existingItemIndex]);
       } else {
+        // Ensure _id is used as product id if available
+        const productId = product._id || product.id;
+        
         cartItems.push({
-          id: product.id,
+          id: productId,
           name: product.name,
           price: product.price,
           image: product.image || (product.images && product.images[0]),
           quantity: quantity
         });
+        console.log('Added new cart item with ID:', productId);
       }
       
       localStorage.setItem('cartItems', JSON.stringify(cartItems));

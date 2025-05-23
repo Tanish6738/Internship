@@ -5,23 +5,32 @@ import ProductModel from "../Models/Products.model.js";
 export const createTransaction = async (req, res) => {
   try {
     const { items, totalAmount, paymentMethod, shippingAddress } = req.body;
-    const userId = req.user.id; 
-
+    const userId = req.user.id;     // Validate each item in the order
     for (const item of items) {
-      const product = await ProductModel.findById(item.productId);
-      if (!product) {
-        return res.status(404).json({ 
-          message: "Product not found", 
-          productId: item.productId 
-        });
-      }
-      
-      if (product.stock < item.quantity) {
-        return res.status(400).json({ 
-          message: `Not enough stock for ${product.name}. Available: ${product.stock}`,
-          product: product.name,
-          requested: item.quantity,
-          available: product.stock
+      try {
+        const product = await ProductModel.findById(item.productId);
+        if (!product) {
+          return res.status(404).json({ 
+            message: "Product not found", 
+            productId: item.productId,
+            details: "The product ID may be invalid or the product has been removed."
+          });
+        }
+        
+        if (product.stock < item.quantity) {
+          return res.status(400).json({ 
+            message: `Not enough stock for ${product.name}. Available: ${product.stock}`,
+            product: product.name,
+            requested: item.quantity,
+            available: product.stock
+          });
+        }
+      } catch (error) {
+        console.error("Error validating product:", error);
+        return res.status(400).json({
+          message: "Invalid product ID format",
+          productId: item.productId,
+          error: error.message
         });
       }
     }

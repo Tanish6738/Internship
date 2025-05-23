@@ -1,11 +1,20 @@
 import ProductService from '../services/Product.service';
 import { toast } from 'react-hot-toast'; // Assuming you have a toast library
 
-const Cards = ({ id, name, price, image, description, onAddToCart }) => {
-  const handleQuickAdd = (e) => {
+const Cards = ({ id, name, price, image, description, onAddToCart }) => {  const handleQuickAdd = (e) => {
     e.stopPropagation(); // Prevent opening the modal
     try {
-      ProductService.addToCart({ id, name, price, image, description }, 1);
+      // Use consistent ID format
+      const productData = { 
+        id: id,  // This will be the MongoDB _id from the backend
+        _id: id, // Add both formats for consistency
+        name, 
+        price, 
+        image, 
+        description 
+      };
+      
+      ProductService.addToCart(productData, 1);
       toast.success(`Added ${name} to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
